@@ -1,0 +1,14 @@
+{
+  "cliVersion": "4.91.1",
+  "generatorName": "fernapi/fern-python-sdk",
+  "generatorVersion": "5.5.11",
+  "generatorConfig": {
+    "package_name": "alpha_sdk_client",
+    "client_class_name": "AlphaSDKClient"
+  },
+  "originGitCommit": "e7f587166abd5d544513de9cf3cff5d775130207",
+  "originGitCommitIsDirty": true,
+  "invokedBy": "manual",
+  "requestedVersion": null,
+  "ciProvider": null
+}

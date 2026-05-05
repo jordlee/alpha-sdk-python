@@ -1,0 +1,7 @@
+# Hand-authored files Fern must not overwrite on regen
+LICENSE
+README.md
+CHANGELOG.md
+pyproject.toml
+.gitignore
+.fernignore
