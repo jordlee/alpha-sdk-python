@@ -1,44 +1,82 @@
-# alpha-sdk-client
+# Alpha SDK Python Example
 
-Python client for the Alpha Camera REST API.
+Minimal Python example repo for Jupyter notebooks and simple data-collection workflows.
 
-## Install (local development)
+This repo is **not** the Python SDK package itself. Install the published client from PyPI:
 
 ```bash
-pip install -e .
+pip install alpha-sdk-client
 ```
 
-## Run the notebook example
+Use this repo as copy-paste/reference code for:
 
-Start the camera server first, then from this repo root install the SDK in editable mode:
+- discovering and connecting to a camera
+- collecting repeated property snapshots into row dictionaries
+- triggering AF + shutter capture
+- enabling live view and fetching a JPEG frame
+- previewing SD card files in `remote-transfer` mode
+
+## Requirements
+
+- Python 3.8+
+- a running Alpha Camera server on `http://localhost:8080`
+- a camera supported by the SDK
+
+Start the camera server separately. For example:
 
 ```bash
-pip install -e .
+npm install -g @alpha-sdk/api
+camera-server start
 ```
 
-You can sanity-check the example script directly:
+## Install
 
 ```bash
-python examples/notebook_data_collection.py
+pip install -r requirements.txt
 ```
 
-That file is primarily intended to be imported from Jupyter or another notebook environment.
-
-If you want to use it in Jupyter:
+If you do not want Jupyter installed, the only required runtime dependency is:
 
 ```bash
-python -m pip install jupyter
+pip install alpha-sdk-client
+```
+
+## Files
+
+- `notebook_data_collection.py` — notebook-friendly helper functions plus a small CLI smoke test
+
+## Quick smoke test
+
+From the repo root:
+
+```bash
+python notebook_data_collection.py
+```
+
+That will:
+
+- discover cameras
+- connect to the first one
+- collect a few property snapshots
+- print the results
+
+To trigger one real capture:
+
+```bash
+python notebook_data_collection.py --capture
+```
+
+## Use in Jupyter
+
+Start Jupyter from this repo root:
+
+```bash
 jupyter notebook
 ```
 
 Then in a notebook cell:
 
 ```python
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path("examples").resolve()))
-
 from alpha_sdk_client import AlphaSDKClient
 from notebook_data_collection import (
     collect_property_rows,
@@ -53,62 +91,7 @@ camera = connect_first_camera(client, mode="remote")
 rows = collect_property_rows(client, camera.id, count=5, interval_s=1.0)
 ```
 
-## Usage
-
-```python
-from alpha_sdk_client import AlphaSDKClient
-
-client = AlphaSDKClient(base_url="http://localhost:8080")
-cameras = client.cameras.list()
-print(cameras.cameras)
-```
-
-## Async
-
-```python
-from alpha_sdk_client import AsyncAlphaSDKClient
-
-client = AsyncAlphaSDKClient(base_url="http://localhost:8080")
-cameras = await client.cameras.list()
-```
-
-## Notebook / data collection example
-
-For a minimal Jupyter-friendly workflow, use:
-
-- `examples/notebook_data_collection.py`
-
-It covers the common data-science path:
-
-- discover and connect to the first camera
-- collect repeated property snapshots into row dictionaries
-- trigger AF capture
-- fetch and save a live-view JPEG frame
-- preview SD card files in `remote-transfer` mode
-
-Typical notebook usage:
-
-```python
-from alpha_sdk_client import AlphaSDKClient
-from notebook_data_collection import (
-    collect_property_rows,
-    connect_first_camera,
-    enable_live_view,
-    fetch_live_view_frame,
-    save_live_view_frame,
-)
-
-client = AlphaSDKClient(base_url="http://localhost:8080")
-camera = connect_first_camera(client, mode="remote")
-
-rows = collect_property_rows(client, camera.id, count=5, interval_s=1.0)
-
-enable_live_view(client, camera.id)
-frame = fetch_live_view_frame(client, camera.id)
-save_live_view_frame(frame, "frame.jpg")
-```
-
-If you want a pandas DataFrame, the helper already returns plain row dictionaries:
+If you want a DataFrame:
 
 ```python
 import pandas as pd
@@ -117,14 +100,16 @@ df = pd.DataFrame(rows)
 df.head()
 ```
 
-## Recipes — SSE, live view, server lifecycle, discovery
+## Live view example
 
-This SDK covers every REST endpoint. For the patterns that aren't REST (real-time events, frame polling, spawning the server) use the recipes on [crsdk.app](https://crsdk.app/docs/sdk/overview#recipes):
+```python
+enable_live_view(client, camera.id)
+frame = fetch_live_view_frame(client, camera.id)
+save_live_view_frame(frame, "frame.jpg")
+```
 
-| Pattern | Recipe |
-|---------|--------|
-| Real-time events (SSE) | [Recipe 1](https://crsdk.app/docs/sdk/recipes/sse-events) |
-| Live view frame polling | [Recipe 2](https://crsdk.app/docs/sdk/recipes/live-view-polling) |
-| Server subprocess lifecycle | [Recipe 3](https://crsdk.app/docs/sdk/recipes/server-subprocess) |
-| Camera discovery / hot-plug | [Recipe 4](https://crsdk.app/docs/sdk/recipes/discovery-reconnect) |
-| Retry with backoff | [Recipe 5](https://crsdk.app/docs/sdk/recipes/retry-backoff) |
+## Notes
+
+- `mode="remote"` is the simplest default for control and capture.
+- Use `mode="remote-transfer"` if you also want SD card listing/downloads.
+- The helper waits for connection status after `connect()` rather than assuming the server flips to connected immediately.
