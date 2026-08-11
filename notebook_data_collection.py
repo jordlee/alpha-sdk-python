@@ -25,9 +25,12 @@ Typical workflow:
 This example intentionally stays minimal:
 - no pandas dependency
 - no plotting dependency
-- no server subprocess management
 
-Start the camera server separately, then point the client at it.
+The camera server is spawned/adopted by ``camera_server.managed_server`` (see
+that module). Set ``CRSDK_BINARY`` to the built ``CameraWebApp`` to let this
+script start it, or run ``./crsdk start`` yourself and it will be adopted. In a
+notebook you can skip that helper and point the client at a server you already
+run.
 """
 
 from __future__ import annotations
@@ -42,6 +45,8 @@ import httpx
 
 from alpha_sdk_client import AlphaSDKClient
 from alpha_sdk_client.types.property_name import PropertyName
+
+from camera_server import managed_server
 
 DEFAULT_PROPERTIES: tuple[PropertyName, ...] = (
     "battery-remain",
@@ -262,6 +267,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Minimal notebook/data-collection camera helper.")
     parser.add_argument("--base-url", default="http://localhost:8080", help="Camera server base URL.")
     parser.add_argument(
+        "--binary",
+        default=None,
+        help="Path to the built CameraWebApp to spawn (defaults to $CRSDK_BINARY).",
+    )
+    parser.add_argument(
         "--mode",
         default="remote",
         choices=("remote", "remote-transfer", "contents"),
@@ -289,35 +299,39 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = _build_parser().parse_args()
-    client = AlphaSDKClient(base_url=args.base_url)
 
-    cameras = list_cameras(client)
-    print("Discovered cameras:")
-    print_summary(cameras)
-    if not cameras:
-        return
+    # Adopt a running server, or spawn CameraWebApp from $CRSDK_BINARY, for the
+    # duration of the run (a spawned server is shut down on exit).
+    with managed_server(args.base_url, binary=args.binary) as base_url:
+        client = AlphaSDKClient(base_url=base_url)
 
-    camera = connect_first_camera(client, mode=args.mode)
-    print(
-        {
-            "connected_camera_id": camera.id,
-            "model": camera.model,
-            "mode": camera.mode,
-        }
-    )
+        cameras = list_cameras(client)
+        print("Discovered cameras:")
+        print_summary(cameras)
+        if not cameras:
+            return
 
-    if args.capture:
-        trigger_af_capture(client, camera.id)
-        print({"capture": "triggered"})
+        camera = connect_first_camera(client, mode=args.mode)
+        print(
+            {
+                "connected_camera_id": camera.id,
+                "model": camera.model,
+                "mode": camera.mode,
+            }
+        )
 
-    rows = collect_property_rows(
-        client,
-        camera.id,
-        count=args.count,
-        interval_s=args.interval,
-    )
-    print("Collected property rows:")
-    print_summary(rows)
+        if args.capture:
+            trigger_af_capture(client, camera.id)
+            print({"capture": "triggered"})
+
+        rows = collect_property_rows(
+            client,
+            camera.id,
+            count=args.count,
+            interval_s=args.interval,
+        )
+        print("Collected property rows:")
+        print_summary(rows)
 
 
 if __name__ == "__main__":
