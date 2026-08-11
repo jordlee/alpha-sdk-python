@@ -19,15 +19,28 @@ Use this repo as copy-paste/reference code for:
 ## Requirements
 
 - Python 3.8+
-- a running Alpha Camera server on `http://localhost:8080`
+- the Alpha Camera server (`CameraWebApp`), built from source
 - a camera supported by the SDK
 
-Start the camera server separately. For example:
+The camera server is built from source — it needs Sony's Camera Remote SDK and is
+never shipped as a package. Build it once with the
+[`crsdk`](https://github.com/crsdk/alpha-sdk-api) CLI:
 
 ```bash
-npm install -g @alpha-sdk/api
-camera-server start
+git clone https://github.com/crsdk/alpha-sdk-api.git
+cd alpha-sdk-api
+./crsdk install --zip <sony-camera-remote-sdk.zip>
+./crsdk build
 ```
+
+Then either let this script **spawn** it (point `CRSDK_BINARY` at the built binary):
+
+```bash
+export CRSDK_BINARY=/path/to/alpha-sdk-api/api/server/build/CameraWebApp
+```
+
+…or **run it yourself** (`./crsdk start`) and the script will adopt the running
+server. The spawn/adopt logic lives in `camera_server.managed_server`.
 
 ## Install
 
@@ -44,6 +57,7 @@ pip install alpha-sdk-client
 ## Files
 
 - `notebook_data_collection.py` — notebook-friendly helper functions plus a small CLI smoke test
+- `camera_server.py` — spawn/adopt lifecycle for the native `CameraWebApp` (stdlib only)
 
 ## Quick smoke test
 
